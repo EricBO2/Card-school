@@ -3,8 +3,7 @@ package se.sti.card_school.blackjack;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import se.sti.card_school.cards.Card;
-import se.sti.card_school.cards.Deck;
+import se.sti.card_school.cards.*;
 import se.sti.card_school.model.Dealer;
 import se.sti.card_school.model.Player;
 
@@ -16,8 +15,7 @@ public class BlackJackController {
     private final BlackJackGameState gameState;
 
     @Autowired
-    public BlackJackController(BlackJackService blackJackService,
-                               BlackJackGameState gameState) {
+    public BlackJackController(BlackJackService blackJackService, BlackJackGameState gameState) {
         this.blackJackService = blackJackService;
         this.gameState = gameState;
     }
@@ -35,22 +33,24 @@ public class BlackJackController {
 
     // 2. Player hit
     @PostMapping("/player-hit")
-    public ResponseEntity<Card> playerHit() {
+    public ResponseEntity<CardDTO> playerHit() {
         Player player = gameState.getPlayer();
         Deck deck = gameState.getDeck();
 
         Card drawnCard = blackJackService.hit(player, deck);
-        return ResponseEntity.ok(drawnCard);
+        CardDTO cardDTO = new CardDTO(drawnCard); // Konvertera till DTO
+
+        return ResponseEntity.ok(cardDTO);
     }
 
     // 3. Stand -> dealer plays
     @PostMapping("/stay")
-    public ResponseEntity<ResultDTO> stay() {
+    public ResponseEntity<BlackJackResultDTO> stay() {
         Player player = gameState.getPlayer();
         Dealer dealer = gameState.getDealer();
         Deck deck = gameState.getDeck();
 
-        ResultDTO result = blackJackService.dealerPlayAndReturnResult(player, dealer, deck);
+        BlackJackResultDTO result = blackJackService.dealerPlayAndReturnResult(player, dealer, deck);
         gameState.setGameOver(true);
 
         return ResponseEntity.ok(result);

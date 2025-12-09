@@ -1,8 +1,7 @@
 package se.sti.card_school.blackjack;
 
 import org.springframework.stereotype.Service;
-import se.sti.card_school.cards.Card;
-import se.sti.card_school.cards.Deck;
+import se.sti.card_school.cards.*;
 import se.sti.card_school.model.Dealer;
 import se.sti.card_school.model.Player;
 import se.sti.card_school.model.User;
@@ -23,7 +22,7 @@ public class BlackJackService {
         return card;
     }
 
-    // Deal start hand (2 kort)
+    // Deal start hand (2 cards)
     public void dealStartHand(User user, Deck deck) {
         hit(user, deck);
         hit(user, deck);
@@ -71,14 +70,20 @@ public class BlackJackService {
     }
 
     // Helper: dealer plays and return ResultDTO
-    public ResultDTO dealerPlayAndReturnResult(Player player, Dealer dealer, Deck deck) {
+    public BlackJackResultDTO dealerPlayAndReturnResult(Player player, Dealer dealer, Deck deck) {
         dealerPlay(dealer, deck);
         boolean playerWins = calculateResult(player, dealer);
 
-        return new ResultDTO(
-                dealer.getCards(),
+        // Converts Card to CardDTO for result
+        List<CardDTO> dealerCardsDTO = dealer.getCards().stream()
+                .map(CardDTO::new)
+                .toList();
+
+        return new BlackJackResultDTO(
+                dealerCardsDTO,
                 calculatePoints(dealer),
                 playerWins
         );
     }
+
 }
