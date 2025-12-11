@@ -3,9 +3,11 @@ package se.sti.card_school.blackjack;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import se.sti.card_school.cards.*;
+import se.sti.card_school.cards.Deck;
 import se.sti.card_school.model.Dealer;
 import se.sti.card_school.model.Player;
+import se.sti.card_school.messaging.GameResultPublisher;
+import se.sti.card_school.messaging.PlayerScoreDTO;
 
 @RestController
 @RequestMapping("/blackjack")
@@ -13,14 +15,18 @@ public class BlackJackController {
 
     private final BlackJackService blackJackService;
     private final BlackJackGameState gameState;
+    private final GameResultPublisher gameResultPublisher;
 
     @Autowired
-    public BlackJackController(BlackJackService blackJackService, BlackJackGameState gameState) {
+    public BlackJackController(BlackJackService blackJackService,
+                               BlackJackGameState gameState,
+                               GameResultPublisher gameResultPublisher) {
         this.blackJackService = blackJackService;
         this.gameState = gameState;
+        this.gameResultPublisher = gameResultPublisher;
     }
 
-    // 1. Start new game
+    // Start new game
     @GetMapping("/new-game")
     public ResponseEntity<String> newGame() {
         gameState.reset();
@@ -31,19 +37,20 @@ public class BlackJackController {
         return ResponseEntity.ok("New Blackjack game started!");
     }
 
-    // 2. Player hit
+    // Player hit
     @PostMapping("/player-hit")
-    public ResponseEntity<CardDTO> playerHit() {
+    public ResponseEntity<Integer> playerHit() {
         Player player = gameState.getPlayer();
         Deck deck = gameState.getDeck();
 
-        Card drawnCard = blackJackService.hit(player, deck);
-        CardDTO cardDTO = new CardDTO(drawnCard); // Konvertera till DTO
+        int pointsAfterHit = blackJackService.calculatePoints(player);
+        blackJackService.hit(player, deck);
 
-        return ResponseEntity.ok(cardDTO);
+        return ResponseEntity.ok(pointsAfterHit); // Skicka aktuell poäng till frontend
     }
 
-    // 3. Stand -> dealer plays
+    // Player stays, then dealer plays
+    // Return result to frontend and send score to security
     @PostMapping("/stay")
     public ResponseEntity<BlackJackResultDTO> stay() {
         Player player = gameState.getPlayer();
@@ -51,6 +58,11 @@ public class BlackJackController {
         Deck deck = gameState.getDeck();
 
         BlackJackResultDTO result = blackJackService.dealerPlayAndReturnResult(player, dealer, deck);
+
+        // Sends player score to security microservice
+        PlayerScoreDTO scoreDTO = new PlayerScoreDTO(result.playerPoints());
+        gameResultPublisher.sendScore(scoreDTO);
+
         gameState.setGameOver(true);
 
         return ResponseEntity.ok(result);
