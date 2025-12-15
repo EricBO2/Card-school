@@ -7,10 +7,8 @@ public class Card {
     public Card(int value, Suit suit) {
         if (value >= 2 && value <= 14) {
             this.value = value;
-        }
-        else {
-            System.out.println("What did you doooooooooooo!?!?!?!?!?!?!?!?!?!?!?!?!?!?!?!?!?!?!?!?!");
-            throw new IllegalArgumentException();
+        } else {
+            throw new IllegalArgumentException("Invalid card value: " + value);
         }
         this.suit = suit;
     }
