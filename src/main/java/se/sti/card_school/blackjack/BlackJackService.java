@@ -8,6 +8,7 @@ import se.sti.card_school.model.Dealer;
 import se.sti.card_school.model.Player;
 import se.sti.card_school.model.User;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -24,13 +25,7 @@ public class BlackJackService {
         return card;
     }
 
-    // Deal start hand (2 cards)
-    public void dealStartHand(User user, Deck deck) {
-        hit(user, deck);
-        hit(user, deck);
-    }
-
-    // Dealer plays automatically
+    // Dealer plays automatically after stay
     public void dealerPlay(Dealer dealer, Deck deck) {
         while (calculatePoints(dealer) <= 17) {
             hit(dealer, deck);
@@ -66,24 +61,53 @@ public class BlackJackService {
         int p = calculatePoints(player);
         int d = calculatePoints(dealer);
 
-        if (p > 21) return false; // player bust
-        if (d > 21) return true;  // dealer bust
+        if (p > 21) return false;
+        if (d > 21) return true;
         return p > d;
     }
 
-    // Dealer plays and return full result with DTOs
+    // Initial deal: player (2 open), dealer (1 open, 1 hidden)
+    public BlackJackInitialDealDTO initialDeal(Player player, Dealer dealer, Deck deck) {
+
+        List<CardDTO> playerCards = new ArrayList<>();
+        List<CardDTO> dealerCards = new ArrayList<>();
+
+        // Player: two face-up cards
+        for (int i = 0; i < 2; i++) {
+            Card card = hit(player, deck);
+            playerCards.add(new CardDTO(card, false));
+        }
+
+        // Dealer: first open
+        Card firstDealerCard = hit(dealer, deck);
+        dealerCards.add(new CardDTO(firstDealerCard, false));
+
+        // Dealer: second hidden
+        Card secondDealerCard = hit(dealer, deck);
+        dealerCards.add(new CardDTO(secondDealerCard, true));
+
+        return new BlackJackInitialDealDTO(playerCards, dealerCards);
+    }
+
+    // Dealer plays and return final result
     public BlackJackResultDTO dealerPlayAndReturnResult(Player player, Dealer dealer, Deck deck) {
+
         dealerPlay(dealer, deck);
+
         boolean playerWins = calculateResult(player, dealer);
 
-        // Convert dealer's cards to DTO
         List<CardDTO> dealerCardsDTO = dealer.getCards().stream()
-                .map(CardDTO::new)
+                .map(card -> new CardDTO(card, false)) // all revealed
                 .toList();
 
         int playerPoints = calculatePoints(player);
         int dealerPoints = calculatePoints(dealer);
 
-        return new BlackJackResultDTO(dealerCardsDTO, playerPoints, dealerPoints, playerWins);
+        return new BlackJackResultDTO(
+                dealerCardsDTO,
+                playerPoints,
+                dealerPoints,
+                playerWins
+        );
     }
 }

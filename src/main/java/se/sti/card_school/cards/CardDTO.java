@@ -4,24 +4,28 @@ public record CardDTO(
         int value,
         String suit,
         String imagePath,
-        String displayName
+        String displayName,
+        boolean faceDown
 ) {
 
-    // Creates image path that matches with sng images in frontend
-    // 2-10
+    // Creates CardDTO with default faceDown=false
     public CardDTO(Card card) {
+        this(card, false);
+    }
+
+    // Creates CardDTO with optional faceDown
+    public CardDTO(Card card, boolean faceDown) {
         this(
                 card.getValue(),
                 card.getSuit().toString(),
                 "/cards/" + valueToString(card.getValue())
-                        + "_of_"
-                        + card.getSuit().toString().toLowerCase()
+                        + "_of_" + card.getSuit().toString().toLowerCase()
                         + ".svg",
-                displayName(card)
+                displayName(card),
+                faceDown
         );
     }
 
-    // Jack - Ace
     private static String valueToString(int value) {
         return switch (value) {
             case 11 -> "jack";

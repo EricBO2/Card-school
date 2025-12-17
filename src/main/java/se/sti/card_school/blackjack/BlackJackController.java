@@ -4,7 +4,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import se.sti.card_school.cards.Card;
 import se.sti.card_school.cards.CardDTO;
 import se.sti.card_school.cards.Deck;
 import se.sti.card_school.model.Dealer;
@@ -36,16 +35,20 @@ public class BlackJackController {
         return null;
     }
 
-    // Start new game
+    // Start new game and initial deal
     @GetMapping("/new-game")
-    public ResponseEntity<String> newGame() {
+    public ResponseEntity<BlackJackInitialDealDTO> newGame() {
+
         gameState.reset();
 
         Deck deck = gameState.getDeck();
-        blackJackService.dealStartHand(gameState.getPlayer(), deck);
-        blackJackService.dealStartHand(gameState.getDealer(), deck);
+        Player player = gameState.getPlayer();
+        Dealer dealer = gameState.getDealer();
 
-        return ResponseEntity.ok("New Blackjack game started!");
+        BlackJackInitialDealDTO initialDeal =
+                blackJackService.initialDeal(player, dealer, deck);
+
+        return ResponseEntity.ok(initialDeal);
     }
 
     // Player Hit
@@ -58,8 +61,10 @@ public class BlackJackController {
         Player player = gameState.getPlayer();
         Deck deck = gameState.getDeck();
 
-        Card drawnCard = blackJackService.hit(player, deck);
-        CardDTO cardDTO = new CardDTO(drawnCard);
+        CardDTO cardDTO = new CardDTO(
+                blackJackService.hit(player, deck),
+                false
+        );
 
         return ResponseEntity.ok(cardDTO);
     }
@@ -82,19 +87,4 @@ public class BlackJackController {
 
         return ResponseEntity.ok(result);
     }
-
-    // Get current game state (used by frontend)
-    @GetMapping("/state")
-    public ResponseEntity<BlackJackStateDTO> getState() {
-
-        BlackJackStateDTO state = BlackJackStateDTO.from(
-                gameState.getPlayer(),
-                gameState.getDealer(),
-                blackJackService,
-                gameState.isGameOver()
-        );
-
-        return ResponseEntity.ok(state);
-    }
-
 }
