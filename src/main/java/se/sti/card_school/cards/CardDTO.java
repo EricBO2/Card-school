@@ -8,24 +8,20 @@ public record CardDTO(
         boolean faceDown
 ) {
 
-    // Creates CardDTO with default faceDown=false
-    public CardDTO(Card card) {
-        this(card, false);
-    }
-
-    // Creates CardDTO with optional faceDown
+    // Constructor that takes Card + faceDown
     public CardDTO(Card card, boolean faceDown) {
         this(
                 card.getValue(),
                 card.getSuit().toString(),
-                "/cards/" + valueToString(card.getValue())
-                        + "_of_" + card.getSuit().toString().toLowerCase()
-                        + ".svg",
+                faceDown
+                        ? "/cards/hidden_card.svg"
+                        : "/cards/" + valueToString(card.getValue()) + "_of_" + card.getSuit().toString().toLowerCase() + ".svg",
                 displayName(card),
                 faceDown
         );
     }
 
+    // Handles jack - ace
     private static String valueToString(int value) {
         return switch (value) {
             case 11 -> "jack";

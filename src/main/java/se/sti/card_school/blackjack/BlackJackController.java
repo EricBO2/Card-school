@@ -35,6 +35,19 @@ public class BlackJackController {
         return null;
     }
 
+    // Gets state when refreshed page
+    @GetMapping("/state")
+    public ResponseEntity<BlackJackStateDTO> getState() {
+        BlackJackStateDTO state = BlackJackStateDTO.from(
+                gameState.getPlayer(),
+                gameState.getDealer(),
+                blackJackService,
+                gameState.isGameOver()
+        );
+        return ResponseEntity.ok(state);
+    }
+
+
     // Start new game and initial deal
     @GetMapping("/new-game")
     public ResponseEntity<BlackJackInitialDealDTO> newGame() {
