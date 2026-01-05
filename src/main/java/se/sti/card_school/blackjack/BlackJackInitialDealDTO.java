@@ -5,6 +5,8 @@ import java.util.List;
 
 public record BlackJackInitialDealDTO(
         List<CardDTO> playerCards,
-        List<CardDTO> dealerCards
+        List<CardDTO> dealerCards,
+        int playerPoints,
+        int dealerPoints
 ) {
 }

@@ -69,25 +69,31 @@ public class BlackJackService {
     // Initial deal: player (2 open), dealer (1 open, 1 hidden)
     public BlackJackInitialDealDTO initialDeal(Player player, Dealer dealer, Deck deck) {
 
-        List<CardDTO> playerCards = new ArrayList<>();
-        List<CardDTO> dealerCards = new ArrayList<>();
+        List<CardDTO> playerCardsDTO = new ArrayList<>();
+        List<CardDTO> dealerCardsDTO = new ArrayList<>();
 
         // Player: two face-up cards
         for (int i = 0; i < 2; i++) {
             Card card = hit(player, deck);
-            playerCards.add(new CardDTO(card, false));
+            playerCardsDTO.add(new CardDTO(card, false));
         }
 
-        // Dealer: first open
+        // Dealer: first card open
         Card firstDealerCard = hit(dealer, deck);
-        dealerCards.add(new CardDTO(firstDealerCard, false));
+        dealerCardsDTO.add(new CardDTO(firstDealerCard, false));
 
-        // Dealer: second hidden
+        // Dealer: second card hidden
         Card secondDealerCard = hit(dealer, deck);
-        dealerCards.add(new CardDTO(secondDealerCard, true));
+        dealerCardsDTO.add(new CardDTO(secondDealerCard, true));
 
-        return new BlackJackInitialDealDTO(playerCards, dealerCards);
+        // Calculate points at first give
+        int playerPoints = calculatePoints(player);
+        int dealerPoints = calculatePoints(List.of(firstDealerCard));
+
+        return new BlackJackInitialDealDTO(playerCardsDTO, dealerCardsDTO, playerPoints, dealerPoints);
     }
+
+
 
     // Dealer plays and return final result
     public BlackJackResultDTO dealerPlayAndReturnResult(Player player, Dealer dealer, Deck deck) {
