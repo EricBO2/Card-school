@@ -1,10 +1,8 @@
 package se.sti.card_school.blackjack;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import se.sti.card_school.cards.CardDTO;
 import se.sti.card_school.cards.Deck;
 import se.sti.card_school.model.Dealer;
 import se.sti.card_school.model.Player;
@@ -25,16 +23,6 @@ public class BlackJackController {
         this.gameState = gameState;
     }
 
-    // Helper: block requests if game is already over
-    private ResponseEntity<?> blockIfGameOver() {
-        if (gameState.isGameOver()) {
-            return ResponseEntity
-                    .status(HttpStatus.CONFLICT)
-                    .body("Game is already over");
-        }
-        return null;
-    }
-
     // Gets state when refreshed page
     @GetMapping("/state")
     public ResponseEntity<BlackJackStateDTO> getState() {
@@ -50,7 +38,7 @@ public class BlackJackController {
 
     // Start new game and initial deal
     @GetMapping("/new-game")
-    public ResponseEntity<BlackJackInitialDealDTO> newGame() {
+    public ResponseEntity<BlackJackStateDTO> newGame() {
 
         gameState.reset();
 
@@ -58,46 +46,88 @@ public class BlackJackController {
         Player player = gameState.getPlayer();
         Dealer dealer = gameState.getDealer();
 
-        BlackJackInitialDealDTO initialDeal =
-                blackJackService.initialDeal(player, dealer, deck);
+        blackJackService.initialDeal(player, dealer, deck);
 
-        return ResponseEntity.ok(initialDeal);
+        return ResponseEntity.ok(
+                BlackJackStateDTO.from(
+                        player,
+                        dealer,
+                        blackJackService,
+                        false
+                )
+        );
     }
 
-    // Player Hit
-    @PostMapping("/player-hit")
-    public ResponseEntity<CardDTO> playerHit() {
 
-        ResponseEntity<?> blocked = blockIfGameOver();
-        if (blocked != null) return (ResponseEntity<CardDTO>) blocked;
+    @PostMapping("/player-hit")
+    public ResponseEntity<BlackJackStateDTO> playerHit() {
+
+        // Blocks hit after game over
+        if (gameState.isGameOver()) {
+            return ResponseEntity.ok(
+                    BlackJackStateDTO.from(
+                            gameState.getPlayer(),
+                            gameState.getDealer(),
+                            blackJackService,
+                            true
+                    )
+            );
+        }
 
         Player player = gameState.getPlayer();
         Deck deck = gameState.getDeck();
 
-        CardDTO cardDTO = new CardDTO(
-                blackJackService.hit(player, deck),
-                false
-        );
+        blackJackService.hit(player, deck);
 
-        return ResponseEntity.ok(cardDTO);
+        if (blackJackService.calculatePoints(player) > 21) {
+            gameState.setGameOver(true);
+        }
+
+        //Sends state to frontend
+        return ResponseEntity.ok(
+                BlackJackStateDTO.from(
+                        gameState.getPlayer(),
+                        gameState.getDealer(),
+                        blackJackService,
+                        gameState.isGameOver()
+                )
+        );
     }
+
 
     // Player stays, then dealer plays
     @PostMapping("/stay")
-    public ResponseEntity<BlackJackResultDTO> stay() {
+    public ResponseEntity<BlackJackStateDTO> stay() {
 
-        ResponseEntity<?> blocked = blockIfGameOver();
-        if (blocked != null) return (ResponseEntity<BlackJackResultDTO>) blocked;
+        // Blocks stay after game over
+        if (gameState.isGameOver()) {
+            return ResponseEntity.ok(
+                    BlackJackStateDTO.from(
+                            gameState.getPlayer(),
+                            gameState.getDealer(),
+                            blackJackService,
+                            true
+                    )
+            );
+        }
 
-        Player player = gameState.getPlayer();
-        Dealer dealer = gameState.getDealer();
-        Deck deck = gameState.getDeck();
-
-        BlackJackResultDTO result =
-                blackJackService.dealerPlayAndReturnResult(player, dealer, deck);
+        // After dealer is done playing
+        blackJackService.dealerPlay(
+                gameState.getDealer(),
+                gameState.getDeck()
+        );
 
         gameState.setGameOver(true);
 
-        return ResponseEntity.ok(result);
+        // Sends all dealer and player cards and gameOver boolean
+        return ResponseEntity.ok(
+                BlackJackStateDTO.from(
+                        gameState.getPlayer(),
+                        gameState.getDealer(),
+                        blackJackService,
+                        true
+                )
+        );
     }
 }
+
